@@ -34,6 +34,7 @@ const menuItems = [
   { name: "Notifications", path: "/notifications", icon: "🔔" },
   { name: "Users & Roles", path: "/users", icon: "👤" },
   { name: "Settings", path: "/settings", icon: "⚙️" },
+  { name: "Barcode Generator", path: "/barcode-generator", icon: "🏷️" },
   { name: "Logout", path: "/logout", icon: "🚪" },
 ];
 

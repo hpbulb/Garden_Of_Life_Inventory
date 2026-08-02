@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useState } from "react";
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useContext, useEffect, useCallback, useState } from "react";
 
 const InventoryContext = createContext();
 
@@ -271,7 +272,7 @@ export function InventoryProvider({ children }) {
   };
 
   // ---- Notifications ----
-  const addNotification = (message, type = "info") => {
+  const addNotification = useCallback((message, type = "info") => {
     const newNotification = {
       id: generateId(notifications),
       message,
@@ -279,8 +280,8 @@ export function InventoryProvider({ children }) {
       read: false,
       date: new Date().toISOString(),
     };
-    setNotifications([newNotification, ...notifications]);
-  };
+    setNotifications((prev) => [newNotification, ...prev]);
+  }, [notifications]);
 
   const markNotificationRead = (id) => {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
@@ -319,7 +320,7 @@ export function InventoryProvider({ children }) {
       }
     });
     localStorage.setItem("gfl_low_stock_notified", JSON.stringify(notified));
-  }, [products]);
+  }, [products, addNotification, lowStockProducts]);
 
   const value = {
     // Data

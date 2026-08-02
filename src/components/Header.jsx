@@ -90,14 +90,14 @@ export default function Header() {
             className="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-200"
           >
             <span className="h-8 w-8 rounded-full bg-emerald-500 text-white flex items-center justify-center">👤</span>
-            <span>Admin</span>
+            <span>{users[0]?.name || "User"}</span>
           </button>
 
           {showUserMenu && (
             <div className="absolute right-0 top-full mt-2 w-48 rounded-lg border border-slate-200 bg-white shadow-lg">
               <div className="border-b border-slate-200 px-4 py-2">
-                <p className="font-semibold">Admin User</p>
-                <p className="text-sm text-slate-500">admin@gfl.com</p>
+                <p className="font-semibold">{users[0]?.name || "User"}</p>
+                <p className="text-sm text-slate-500">{users[0]?.email || ""}</p>
               </div>
               <div className="py-1">
                 <a href="#" className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Profile</a>

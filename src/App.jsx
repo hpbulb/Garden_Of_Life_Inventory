@@ -15,6 +15,7 @@ import Reports from "./pages/Reports";
 import Notifications from "./pages/Notifications";
 import UsersRoles from "./pages/UsersRoles";
 import Settings from "./pages/Settings";
+import BarcodeGenerator from "./pages/BarcodeGenerator";
 import "./App.css";
 
 function App() {
@@ -38,6 +39,7 @@ function App() {
             <Route path="notifications" element={<Notifications />} />
             <Route path="users" element={<UsersRoles />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="barcode-generator" element={<BarcodeGenerator />} />
             <Route path="logout" element={<Dashboard />} />
           </Route>
         </Routes>
