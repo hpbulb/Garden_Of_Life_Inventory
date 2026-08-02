@@ -118,6 +118,12 @@ export default function SalesHistory() {
                 <p className="text-slate-500">Payment Method</p>
                 <p className="font-medium text-slate-800">{selectedSale.paymentMethod}</p>
               </div>
+              {selectedSale.paymentReference && (
+                <div>
+                  <p className="text-slate-500">Paystack Reference</p>
+                  <p className="font-medium text-slate-800">{selectedSale.paymentReference}</p>
+                </div>
+              )}
               <div>
                 <p className="text-slate-500">Total</p>
                 <p className="font-bold text-emerald-600">${selectedSale.total.toFixed(2)}</p>
