@@ -1,0 +1,29 @@
+.App {
+  min-height: 100vh;
+  background-color: #f8fafc;
+}
+
+/* Active sidebar link */
+.sidebar-link-active {
+  @apply bg-emerald-50 text-emerald-700 border-r-2 border-emerald-600;
+}
+
+/* Card hover effect */
+.card-hover {
+  @apply transition-all duration-200 hover:shadow-md;
+}
+
+/* Table row hover */
+.table-row-hover:hover {
+  @apply bg-gray-50;
+}
+
+/* Badge styles */
+.badge {
+  @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+}
+
+/* Form input focus ring */
+.form-input:focus-within {
+  @apply ring-2 ring-emerald-500;
+}
