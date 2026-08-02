@@ -36,7 +36,7 @@ export default function AuthScreen() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4 py-8">
       <section className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
-        <p className="text-sm font-semibold uppercase tracking-wider text-emerald-600">Garden of Life</p>
+        <p className="text-sm font-bold uppercase tracking-wider text-emerald-600">HP BULB INT'L Garden of Life</p>
         <h1 className="mt-2 text-3xl font-bold text-slate-900">Inventory System</h1>
         <p className="mt-2 text-sm text-slate-500">
           {mode === "login" ? "Sign in to manage your inventory." : "Create an account to get started."}
