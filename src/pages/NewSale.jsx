@@ -21,8 +21,7 @@ export default function NewSale() {
   const [scannerStatus, setScannerStatus] = useState("");
   const [pendingScans, setPendingScans] = useState([]);
   const [manualBarcode, setManualBarcode] = useState("");
-  const videoRef = useRef(null);
-  const streamRef = useRef(null);
+  const scannerRef = useRef(null);
   const scanLockRef = useRef({ value: "", time: 0 });
 
   const filteredProducts = products.filter(
@@ -161,58 +160,28 @@ export default function NewSale() {
   useEffect(() => {
     if (!scannerActive) return undefined;
 
-    let cancelled = false;
-    let detector;
-    let animationFrameId;
+    let scanner;
 
     const startScanner = async () => {
-      if (!("BarcodeDetector" in window)) {
-        setScannerStatus("Camera barcode scanning is not supported in this browser. Use manual barcode entry.");
+      if (!window.Html5Qrcode) {
+        setScannerStatus("Barcode scanner is still loading. Please try again in a moment.");
         setScannerActive(false);
         return;
       }
 
       try {
-        detector = new window.BarcodeDetector({
-          formats: ["code_128", "code_39", "ean_13", "ean_8", "upc_a", "upc_e", "qr_code"],
-        });
-
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" },
-          audio: false,
-        });
-
-        if (cancelled) {
-          stream.getTracks().forEach((track) => track.stop());
-          return;
-        }
-
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play();
-        }
+        scanner = new window.Html5Qrcode("barcode-scanner");
+        scannerRef.current = scanner;
+        await scanner.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: { width: 280, height: 180 } },
+          (decodedText) => handleBarcodeDetected(decodedText),
+          () => {}
+        );
 
         setScannerStatus(`Camera ready. Scan ${AUTO_CART_SCAN_COUNT} in-stock barcodes to add them to the sale.`);
-
-        const scanFrame = async () => {
-          if (!videoRef.current || cancelled) return;
-
-          try {
-            const barcodes = await detector.detect(videoRef.current);
-            if (barcodes.length > 0 && barcodes[0].rawValue) {
-              handleBarcodeDetected(barcodes[0].rawValue);
-            }
-          } catch {
-            setScannerStatus("Unable to read barcode from the camera frame.");
-          }
-
-          animationFrameId = requestAnimationFrame(scanFrame);
-        };
-
-        scanFrame();
       } catch {
-        setScannerStatus("Camera permission was denied or no camera was found.");
+        setScannerStatus("Unable to start the camera. Allow camera access and try again.");
         setScannerActive(false);
       }
     };
@@ -220,12 +189,10 @@ export default function NewSale() {
     startScanner();
 
     return () => {
-      cancelled = true;
-      if (animationFrameId) cancelAnimationFrame(animationFrameId);
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
+      if (scanner) {
+        scanner.stop().catch(() => {});
       }
+      scannerRef.current = null;
     };
   }, [handleBarcodeDetected, scannerActive]);
 
@@ -399,7 +366,7 @@ export default function NewSale() {
               <div>
                 <div className="aspect-video overflow-hidden rounded-lg bg-slate-950">
                   {scannerActive ? (
-                    <video ref={videoRef} className="h-full w-full object-cover" muted playsInline />
+                    <div id="barcode-scanner" className="h-full w-full" />
                   ) : (
                     <div className="flex h-full items-center justify-center px-4 text-center text-sm text-slate-400">
                       Camera scanner is off.
