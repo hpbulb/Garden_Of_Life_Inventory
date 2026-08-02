@@ -1,5 +1,6 @@
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useInventory } from "../context/InventoryContext";
+import { useFirebase } from "../context/FirebaseContext";
 
 const menuItems = [
   { name: "Dashboard", path: "/", icon: "🏠" },
@@ -40,9 +41,16 @@ const menuItems = [
 
 export default function Sidebar() {
   const { unreadNotifications } = useInventory();
+  const { logout } = useFirebase();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const isActive = (path) => location.pathname === path;
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/");
+  };
 
   return (
     <aside className="sidebar-scroll flex h-screen w-64 flex-col overflow-y-auto bg-slate-900 text-slate-100">
@@ -80,6 +88,19 @@ export default function Sidebar() {
                   </NavLink>
                 ))}
               </div>
+            );
+          }
+          if (item.name === "Logout") {
+            return (
+              <button
+                key={item.name}
+                className="flex w-full items-center gap-3 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-emerald-400"
+                onClick={handleLogout}
+                type="button"
+              >
+                <span className="text-lg">{item.icon}</span>
+                <span>{item.name}</span>
+              </button>
             );
           }
           return (

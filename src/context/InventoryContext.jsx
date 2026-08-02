@@ -261,7 +261,7 @@ export function InventoryProvider({ children }) {
       ...sale,
       id,
       date: new Date().toISOString(),
-      total: sale.items.reduce((sum, item) => sum + item.total, 0),
+      total: Number.isFinite(sale.total) ? sale.total : sale.items.reduce((sum, item) => sum + item.total, 0),
     };
     await setDoc(doc(db, "sales", String(id)), newSale);
 
@@ -285,7 +285,7 @@ export function InventoryProvider({ children }) {
       ...purchase,
       id,
       date: new Date().toISOString(),
-      total: purchase.items.reduce((sum, item) => sum + item.total, 0),
+      total: Number.isFinite(purchase.total) ? purchase.total : purchase.items.reduce((sum, item) => sum + item.total, 0),
     };
     await setDoc(doc(db, "purchases", String(id)), newPurchase);
 
