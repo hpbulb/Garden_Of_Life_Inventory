@@ -16,12 +16,12 @@ export default function Customers() {
       c.phone.includes(search)
   );
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (editingId) {
-      updateCustomer(editingId, formData);
+      await updateCustomer(editingId, formData);
     } else {
-      addCustomer(formData);
+      await addCustomer(formData);
     }
     setFormData({ name: "", phone: "", email: "", address: "" });
     setEditingId(null);
@@ -34,9 +34,9 @@ export default function Customers() {
     setShowForm(true);
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this customer?")) {
-      deleteCustomer(id);
+      await deleteCustomer(id);
     }
   };
 

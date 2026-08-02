@@ -15,9 +15,9 @@ export default function Settings() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    updateSettings({
+    await updateSettings({
       ...formData,
       taxRate: parseFloat(formData.taxRate),
       lowStockThreshold: parseInt(formData.lowStockThreshold),

@@ -8,12 +8,12 @@ export default function Suppliers() {
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({ name: "", contact: "", email: "", address: "" });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (editingId) {
-      updateSupplier(editingId, formData);
+      await updateSupplier(editingId, formData);
     } else {
-      addSupplier(formData);
+      await addSupplier(formData);
     }
     setFormData({ name: "", contact: "", email: "", address: "" });
     setEditingId(null);
@@ -26,9 +26,9 @@ export default function Suppliers() {
     setShowForm(true);
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this supplier?")) {
-      deleteSupplier(id);
+      await deleteSupplier(id);
     }
   };
 

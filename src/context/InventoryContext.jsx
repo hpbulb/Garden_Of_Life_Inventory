@@ -1,5 +1,20 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useCallback, useState } from "react";
+import {
+  collection,
+  getDocs,
+  setDoc,
+  doc,
+  deleteDoc,
+  updateDoc,
+  query,
+  orderBy,
+  limit,
+  getDoc,
+  onSnapshot
+} from "firebase/firestore";
+import { db } from "../firebase";
+import { useFirebase } from "./FirebaseContext";
 
 const InventoryContext = createContext();
 
@@ -7,40 +22,20 @@ export function useInventory() {
   return useContext(InventoryContext);
 }
 
-// Helper: load from localStorage
-function load(key, fallback) {
-  try {
-    const item = localStorage.getItem(key);
-    return item ? JSON.parse(item) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-// Helper: save to localStorage
-function save(key, value) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    // ignore
-  }
-}
-
-// Seed data
-const seedCategories = [
+const SEED_CATEGORIES = [
   { id: 1, name: "Supplements", description: "Health supplements and vitamins" },
   { id: 2, name: "Organic Foods", description: "Organic food products" },
   { id: 3, name: "Personal Care", description: "Personal care and hygiene products" },
   { id: 4, name: "Beverages", description: "Healthy drinks and beverages" },
 ];
 
-const seedSuppliers = [
+const SEED_SUPPLIERS = [
   { id: 1, name: "Garden of Life Inc.", contact: "555-0100", email: "orders@gardenoflife.com", address: "123 Wellness Ave, CA 94000" },
   { id: 2, name: "Nature's Best", contact: "555-0200", email: "sales@naturesbest.com", address: "456 Organic St, NY 10001" },
   { id: 3, name: "Whole Foods Distributors", contact: "555-0300", email: "info@wholefoods.com", address: "789 Natural Rd, TX 75001" },
 ];
 
-const seedProducts = [
+const SEED_PRODUCTS = [
   { id: 1, name: "Vitamin Code Raw One", sku: "VCR-001", category: "Supplements", price: 49.99, cost: 25.0, stockQuantity: 120, minStockLevel: 20, supplier: "Garden of Life Inc.", description: "Raw one multivitamin for men", imageUrl: null, dateAdded: "2025-01-15" },
   { id: 2, name: "MyKind Organics Women's Multi", sku: "MKO-002", category: "Supplements", price: 39.99, cost: 20.0, stockQuantity: 85, minStockLevel: 30, supplier: "Garden of Life Inc.", description: "Organic multivitamin for women", imageUrl: null, dateAdded: "2025-01-20" },
   { id: 3, name: "Raw Organic Protein", sku: "ROP-003", category: "Supplements", price: 44.99, cost: 22.0, stockQuantity: 15, minStockLevel: 25, supplier: "Nature's Best", description: "Plant-based organic protein powder", imageUrl: null, dateAdded: "2025-02-01" },
@@ -49,19 +44,19 @@ const seedProducts = [
   { id: 6, name: "Organic Granola Bars", sku: "OGB-006", category: "Organic Foods", price: 6.99, cost: 3.0, stockQuantity: 150, minStockLevel: 40, supplier: "Whole Foods Distributors", description: "Gluten-free organic granola bars", imageUrl: null, dateAdded: "2025-01-12" },
 ];
 
-const seedCustomers = [
+const SEED_CUSTOMERS = [
   { id: 1, name: "Alice Johnson", phone: "555-1001", email: "alice@example.com", address: "101 Maple St, CA 94000" },
   { id: 2, name: "Bob Smith", phone: "555-1002", email: "bob@example.com", address: "202 Oak Ave, NY 10001" },
   { id: 3, name: "Carol Davis", phone: "555-1003", email: "carol@example.com", address: "303 Pine Rd, TX 75001" },
 ];
 
-const seedUsers = [
-  { id: 1, name: "Admin User", email: "admin@gfl.com", role: "admin", password: "admin123" },
-  { id: 2, name: "Sarah Manager", email: "sarah@gfl.com", role: "manager", password: "manager123" },
-  { id: 3, name: "Mike Staff", email: "mike@gfl.com", role: "staff", password: "staff123" },
+const SEED_USERS = [
+  { id: 1, name: "Admin User", email: "admin@gfl.com", role: "admin" },
+  { id: 2, name: "Sarah Manager", email: "sarah@gfl.com", role: "manager" },
+  { id: 3, name: "Mike Staff", email: "mike@gfl.com", role: "staff" },
 ];
 
-const seedSettings = {
+const SEED_SETTINGS = {
   companyName: "Garden of Life",
   companyAddress: "123 Wellness Ave, CA 94000",
   companyPhone: "555-0000",
@@ -73,232 +68,318 @@ const seedSettings = {
   enableEmailAlerts: true,
 };
 
+async function seedCollection(collectionName, data) {
+  const colRef = collection(db, collectionName);
+  const snapshot = await getDocs(colRef);
+  if (snapshot.empty) {
+    for (const item of data) {
+      await setDoc(doc(colRef, String(item.id)), item);
+    }
+  }
+}
+
+async function seedFirestore() {
+  try {
+    await seedCollection("categories", SEED_CATEGORIES);
+    await seedCollection("suppliers", SEED_SUPPLIERS);
+    await seedCollection("products", SEED_PRODUCTS);
+    await seedCollection("customers", SEED_CUSTOMERS);
+    await seedCollection("users", SEED_USERS);
+    const settingsRef = doc(db, "settings", "main");
+    const snap = await getDoc(settingsRef);
+    if (!snap.exists()) {
+      await setDoc(settingsRef, SEED_SETTINGS);
+    }
+  } catch (error) {
+    console.error("Error seeding Firestore:", error);
+  }
+}
+
 export function InventoryProvider({ children }) {
-  // Products
-  const [products, setProducts] = useState(() => load("gfl_products", seedProducts));
-  // Categories
-  const [categories, setCategories] = useState(() => load("gfl_categories", seedCategories));
-  // Suppliers
-  const [suppliers, setSuppliers] = useState(() => load("gfl_suppliers", seedSuppliers));
-  // Customers
-  const [customers, setCustomers] = useState(() => load("gfl_customers", seedCustomers));
-  // Sales
-  const [sales, setSales] = useState(() => load("gfl_sales", []));
-  // Purchases
-  const [purchases, setPurchases] = useState(() => load("gfl_purchases", []));
-  // Stock Adjustments
-  const [stockAdjustments, setStockAdjustments] = useState(() => load("gfl_adjustments", []));
-  // Users
-  const [users, setUsers] = useState(() => load("gfl_users", seedUsers));
-  // Notifications
-  const [notifications, setNotifications] = useState(() => load("gfl_notifications", []));
-  // Settings
-  const [settings, setSettings] = useState(() => load("gfl_settings", seedSettings));
+  const { user, role, loading } = useFirebase();
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [sales, setSales] = useState([]);
+  const [purchases, setPurchases] = useState([]);
+  const [stockAdjustments, setStockAdjustments] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [settings, setSettings] = useState(SEED_SETTINGS);
+  const [ready, setReady] = useState(false);
 
-  // Persist to localStorage
-  useEffect(() => save("gfl_products", products), [products]);
-  useEffect(() => save("gfl_categories", categories), [categories]);
-  useEffect(() => save("gfl_suppliers", suppliers), [suppliers]);
-  useEffect(() => save("gfl_customers", customers), [customers]);
-  useEffect(() => save("gfl_sales", sales), [sales]);
-  useEffect(() => save("gfl_purchases", purchases), [purchases]);
-  useEffect(() => save("gfl_adjustments", stockAdjustments), [stockAdjustments]);
-  useEffect(() => save("gfl_users", users), [users]);
-  useEffect(() => save("gfl_notifications", notifications), [notifications]);
-  useEffect(() => save("gfl_settings", settings), [settings]);
+  useEffect(() => {
+    let unsubProducts, unsubCategories, unsubSuppliers, unsubCustomers;
+    let unsubSales, unsubPurchases, unsubAdjustments, unsubUsers, unsubNotifications;
+    let unsubSettings;
 
-  // Generate unique ID
-  const generateId = (arr) => {
+    const setup = async () => {
+      if (!user) {
+        setReady(true);
+        return;
+      }
+
+      await seedFirestore();
+
+      const handleSnapshotError = (error) => {
+        console.error("Unable to load inventory data:", error);
+      };
+      unsubProducts = onSnapshot(collection(db, "products"), (snap) => {
+        setProducts(snap.docs.map(d => ({ id: Number(d.id), ...d.data() })));
+      }, handleSnapshotError);
+      unsubCategories = onSnapshot(collection(db, "categories"), (snap) => {
+        setCategories(snap.docs.map(d => ({ id: Number(d.id), ...d.data() })));
+      }, handleSnapshotError);
+      unsubSuppliers = onSnapshot(collection(db, "suppliers"), (snap) => {
+        setSuppliers(snap.docs.map(d => ({ id: Number(d.id), ...d.data() })));
+      }, handleSnapshotError);
+      unsubCustomers = onSnapshot(collection(db, "customers"), (snap) => {
+        setCustomers(snap.docs.map(d => ({ id: Number(d.id), ...d.data() })));
+      }, handleSnapshotError);
+      unsubSales = onSnapshot(query(collection(db, "sales"), orderBy("date", "desc")), (snap) => {
+        setSales(snap.docs.map(d => ({ id: Number(d.id), ...d.data() })));
+      }, handleSnapshotError);
+      unsubPurchases = onSnapshot(query(collection(db, "purchases"), orderBy("date", "desc")), (snap) => {
+        setPurchases(snap.docs.map(d => ({ id: Number(d.id), ...d.data() })));
+      }, handleSnapshotError);
+      unsubAdjustments = onSnapshot(query(collection(db, "adjustments"), orderBy("date", "desc"), limit(50)), (snap) => {
+        setStockAdjustments(snap.docs.map(d => ({ id: Number(d.id), ...d.data() })));
+      }, handleSnapshotError);
+      unsubUsers = onSnapshot(collection(db, "users"), (snap) => {
+        setUsers(snap.docs.map(d => ({ id: Number(d.id), ...d.data() })));
+      }, handleSnapshotError);
+      unsubNotifications = onSnapshot(query(collection(db, "notifications"), orderBy("date", "desc")), (snap) => {
+        setNotifications(snap.docs.map(d => ({ id: Number(d.id), ...d.data() })));
+      }, handleSnapshotError);
+      unsubSettings = onSnapshot(doc(db, "settings", "main"), (snap) => {
+        if (snap.exists()) {
+          setSettings(snap.data());
+        }
+      }, handleSnapshotError);
+
+      setReady(true);
+    };
+
+    if (!loading) {
+      setup();
+    }
+
+    return () => {
+      unsubProducts && unsubProducts();
+      unsubCategories && unsubCategories();
+      unsubSuppliers && unsubSuppliers();
+      unsubCustomers && unsubCustomers();
+      unsubSales && unsubSales();
+      unsubPurchases && unsubPurchases();
+      unsubAdjustments && unsubAdjustments();
+      unsubUsers && unsubUsers();
+      unsubNotifications && unsubNotifications();
+      unsubSettings && unsubSettings();
+    };
+  }, [loading, role, user]);
+
+  const generateId = useCallback((arr) => {
     const maxId = arr.length > 0 ? Math.max(...arr.map((item) => item.id)) : 0;
     return maxId + 1;
-  };
+  }, []);
 
   // ---- Products ----
-  const addProduct = (product) => {
-    const newProduct = { ...product, id: generateId(products), dateAdded: new Date().toISOString().split("T")[0] };
-    setProducts([newProduct, ...products]);
-    addNotification(`Product "${product.name}" added to inventory`, "info");
+  const addProduct = useCallback(async (product) => {
+    const id = generateId(products);
+    const newProduct = { ...product, id, dateAdded: new Date().toISOString().split("T")[0] };
+    await setDoc(doc(db, "products", String(id)), newProduct);
     return newProduct;
-  };
+  }, [products, generateId]);
 
-  const updateProduct = (id, product) => {
-    setProducts((prev) => prev.map((p) => (p.id === id ? { ...product, id } : p)));
-  };
+  const updateProduct = useCallback(async (id, product) => {
+    await setDoc(doc(db, "products", String(id)), { ...product, id });
+  }, []);
 
-  const deleteProduct = (id) => {
-    const product = products.find((p) => p.id === id);
-    setProducts(products.filter((p) => p.id !== id));
-    addNotification(`Product "${product?.name}" removed from inventory`, "info");
-  };
+  const deleteProduct = useCallback(async (id) => {
+    await deleteDoc(doc(db, "products", String(id)));
+  }, []);
 
-  const getProduct = (id) => products.find((p) => p.id === id);
+  const getProduct = useCallback((id) => products.find((p) => p.id === id), [products]);
 
   // ---- Categories ----
-  const addCategory = (category) => {
-    const newCategory = { ...category, id: generateId(categories) };
-    setCategories([...categories, newCategory]);
+  const addCategory = useCallback(async (category) => {
+    const id = generateId(categories);
+    const newCategory = { ...category, id };
+    await setDoc(doc(db, "categories", String(id)), newCategory);
     return newCategory;
-  };
+  }, [categories, generateId]);
 
-  const updateCategory = (id, category) => {
-    setCategories((prev) => prev.map((c) => (c.id === id ? { ...category, id } : c)));
-  };
+  const updateCategory = useCallback(async (id, category) => {
+    await setDoc(doc(db, "categories", String(id)), { ...category, id });
+  }, []);
 
-  const deleteCategory = (id) => {
-    const category = categories.find((c) => c.id === id);
-    setCategories(categories.filter((c) => c.id !== id));
-    // Update products that used this category
-    setProducts(products.map((p) => (p.category === category?.name ? { ...p, category: "" } : p)));
-  };
+  const deleteCategory = useCallback(async (id) => {
+    await deleteDoc(doc(db, "categories", String(id)));
+  }, []);
 
   // ---- Suppliers ----
-  const addSupplier = (supplier) => {
-    const newSupplier = { ...supplier, id: generateId(suppliers) };
-    setSuppliers([...suppliers, newSupplier]);
+  const addSupplier = useCallback(async (supplier) => {
+    const id = generateId(suppliers);
+    const newSupplier = { ...supplier, id };
+    await setDoc(doc(db, "suppliers", String(id)), newSupplier);
     return newSupplier;
-  };
+  }, [suppliers, generateId]);
 
-  const updateSupplier = (id, supplier) => {
-    setSuppliers((prev) => prev.map((s) => (s.id === id ? { ...supplier, id } : s)));
-  };
+  const updateSupplier = useCallback(async (id, supplier) => {
+    await setDoc(doc(db, "suppliers", String(id)), { ...supplier, id });
+  }, []);
 
-  const deleteSupplier = (id) => {
-    setSuppliers(suppliers.filter((s) => s.id !== id));
-  };
+  const deleteSupplier = useCallback(async (id) => {
+    await deleteDoc(doc(db, "suppliers", String(id)));
+  }, []);
 
-  const getSupplier = (id) => suppliers.find((s) => s.id === id);
+  const getSupplier = useCallback((id) => suppliers.find((s) => s.id === id), [suppliers]);
 
   // ---- Customers ----
-  const addCustomer = (customer) => {
-    const newCustomer = { ...customer, id: generateId(customers) };
-    setCustomers([...customers, newCustomer]);
+  const addCustomer = useCallback(async (customer) => {
+    const id = generateId(customers);
+    const newCustomer = { ...customer, id };
+    await setDoc(doc(db, "customers", String(id)), newCustomer);
     return newCustomer;
-  };
+  }, [customers, generateId]);
 
-  const updateCustomer = (id, customer) => {
-    setCustomers((prev) => prev.map((c) => (c.id === id ? { ...customer, id } : c)));
-  };
+  const updateCustomer = useCallback(async (id, customer) => {
+    await setDoc(doc(db, "customers", String(id)), { ...customer, id });
+  }, []);
 
-  const deleteCustomer = (id) => {
-    setCustomers(customers.filter((c) => c.id !== id));
-  };
+  const deleteCustomer = useCallback(async (id) => {
+    await deleteDoc(doc(db, "customers", String(id)));
+  }, []);
 
-  const getCustomer = (id) => customers.find((c) => c.id === id);
+  const getCustomer = useCallback((id) => customers.find((c) => c.id === id), [customers]);
 
   // ---- Sales ----
-  const addSale = (sale) => {
+  const addSale = useCallback(async (sale) => {
+    const id = generateId(sales);
     const newSale = {
       ...sale,
-      id: generateId(sales),
+      id,
       date: new Date().toISOString(),
       total: sale.items.reduce((sum, item) => sum + item.total, 0),
     };
-    setSales([newSale, ...sales]);
+    await setDoc(doc(db, "sales", String(id)), newSale);
 
-    // Reduce stock for each sold item
-    sale.items.forEach((item) => {
+    for (const item of sale.items) {
       const product = products.find((p) => p.id === item.productId);
       if (product) {
-        updateProduct(product.id, { ...product, stockQuantity: product.stockQuantity - item.quantity });
+        const newQty = product.stockQuantity - item.quantity;
+        await setDoc(doc(db, "products", String(product.id)), { ...product, stockQuantity: newQty });
       }
-    });
+    }
 
-    addNotification(`Sale #${newSale.id} recorded - $${newSale.total.toFixed(2)}`, "sale");
     return newSale;
-  };
+  }, [sales, products, generateId]);
 
-  const getSale = (id) => sales.find((s) => s.id === id);
+  const getSale = useCallback((id) => sales.find((s) => s.id === id), [sales]);
 
   // ---- Purchases ----
-  const addPurchase = (purchase) => {
+  const addPurchase = useCallback(async (purchase) => {
+    const id = generateId(purchases);
     const newPurchase = {
       ...purchase,
-      id: generateId(purchases),
+      id,
       date: new Date().toISOString(),
       total: purchase.items.reduce((sum, item) => sum + item.total, 0),
     };
-    setPurchases([newPurchase, ...purchases]);
+    await setDoc(doc(db, "purchases", String(id)), newPurchase);
 
-    // Increase stock for each purchased item
-    purchase.items.forEach((item) => {
+    for (const item of purchase.items) {
       const product = products.find((p) => p.id === item.productId);
       if (product) {
-        updateProduct(product.id, { ...product, stockQuantity: product.stockQuantity + item.quantity });
+        const newQty = product.stockQuantity + item.quantity;
+        await setDoc(doc(db, "products", String(product.id)), { ...product, stockQuantity: newQty });
       }
-    });
+    }
 
-    addNotification(`Purchase #${newPurchase.id} recorded - $${newPurchase.total.toFixed(2)}`, "purchase");
     return newPurchase;
-  };
+  }, [purchases, products, generateId]);
 
-  const getPurchase = (id) => purchases.find((p) => p.id === id);
+  const getPurchase = useCallback((id) => purchases.find((p) => p.id === id), [purchases]);
 
   // ---- Stock Adjustments ----
-  const addStockAdjustment = (adjustment) => {
+  const addStockAdjustment = useCallback(async (adjustment) => {
+    const id = generateId(stockAdjustments);
     const newAdjustment = {
       ...adjustment,
-      id: generateId(stockAdjustments),
+      id,
       date: new Date().toISOString(),
     };
-    setStockAdjustments([newAdjustment, ...stockAdjustments]);
+    await setDoc(doc(db, "adjustments", String(id)), newAdjustment);
 
-    // Update product stock
     const product = products.find((p) => p.id === adjustment.productId);
     if (product) {
       let newQty = product.stockQuantity;
       if (adjustment.type === "in") newQty += adjustment.quantity;
       else if (adjustment.type === "out") newQty -= adjustment.quantity;
       else if (adjustment.type === "adjustment") newQty = adjustment.quantity;
-      updateProduct(product.id, { ...product, stockQuantity: newQty });
+      await setDoc(doc(db, "products", String(product.id)), { ...product, stockQuantity: newQty });
     }
 
-    addNotification(`Stock adjusted for "${product?.name}"`, "info");
     return newAdjustment;
-  };
+  }, [stockAdjustments, products, generateId]);
 
   // ---- Users ----
-  const addUser = (user) => {
-    const newUser = { ...user, id: generateId(users) };
-    setUsers([...users, newUser]);
+  const addUser = useCallback(async (user) => {
+    const id = generateId(users);
+    const newUser = { ...user, id };
+    await setDoc(doc(db, "users", String(id)), newUser);
     return newUser;
-  };
+  }, [users, generateId]);
 
-  const updateUser = (id, user) => {
-    setUsers((prev) => prev.map((u) => (u.id === id ? { ...user, id } : u)));
-  };
+  const updateUser = useCallback(async (id, user) => {
+    await setDoc(doc(db, "users", String(id)), { ...user, id });
+  }, []);
 
-  const deleteUser = (id) => {
-    setUsers(users.filter((u) => u.id !== id));
-  };
+  const deleteUser = useCallback(async (id) => {
+    await deleteDoc(doc(db, "users", String(id)));
+  }, []);
 
   // ---- Notifications ----
-  const addNotification = useCallback((message, type = "info") => {
+  const addNotification = useCallback(async (message, type = "info") => {
+    const id = generateId(notifications);
     const newNotification = {
-      id: generateId(notifications),
+      id,
       message,
       type,
       read: false,
       date: new Date().toISOString(),
     };
-    setNotifications((prev) => [newNotification, ...prev]);
-  }, [notifications]);
+    await setDoc(doc(db, "notifications", String(id)), newNotification);
+  }, [notifications, generateId]);
 
-  const markNotificationRead = (id) => {
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
-  };
+  const markNotificationRead = useCallback(async (id) => {
+    const ref = doc(db, "notifications", String(id));
+    const snap = await getDoc(ref);
+    if (snap.exists()) {
+      await updateDoc(ref, { read: true });
+    }
+  }, []);
 
-  const markAllNotificationsRead = () => {
-    setNotifications(notifications.map((n) => ({ ...n, read: true })));
-  };
+  const markAllNotificationsRead = useCallback(async () => {
+    const snap = await getDocs(collection(db, "notifications"));
+    const batch = [];
+    snap.docs.forEach((d) => {
+      if (!d.data().read) {
+        batch.push(updateDoc(doc(db, "notifications", d.id), { read: true }));
+      }
+    });
+    await Promise.all(batch);
+  }, []);
 
-  const deleteNotification = (id) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
-  };
+  const deleteNotification = useCallback(async (id) => {
+    await deleteDoc(doc(db, "notifications", String(id)));
+  }, []);
 
   // ---- Settings ----
-  const updateSettings = (newSettings) => {
-    setSettings({ ...settings, ...newSettings });
-  };
+  const updateSettings = useCallback(async (newSettings) => {
+    await setDoc(doc(db, "settings", "main"), newSettings, { merge: true });
+  }, []);
 
   // ---- Computed values ----
   const lowStockProducts = products.filter((p) => p.stockQuantity <= (p.minStockLevel || settings.lowStockThreshold));
@@ -306,48 +387,25 @@ export function InventoryProvider({ children }) {
   const totalSales = sales.reduce((sum, s) => sum + s.total, 0);
   const totalPurchases = purchases.reduce((sum, p) => sum + p.total, 0);
   const totalRevenue = totalSales;
-  const totalCost = products.reduce((sum, p) => sum + p.cost * p.stockQuantity, 0);
-  const totalInventoryValue = products.reduce((sum, p) => sum + p.price * p.stockQuantity, 0);
+  const totalCost = products.reduce((sum, p) => sum + (p.cost || 0) * (p.stockQuantity || 0), 0);
+  const totalInventoryValue = products.reduce((sum, p) => sum + (p.price || 0) * (p.stockQuantity || 0), 0);
   const unreadNotifications = notifications.filter((n) => !n.read).length;
 
-  // Check for low stock on load and generate notifications
-  useEffect(() => {
-    const notified = JSON.parse(localStorage.getItem("gfl_low_stock_notified") || "[]");
-    lowStockProducts.forEach((product) => {
-      if (!notified.includes(product.id)) {
-        addNotification(`Low stock alert: "${product.name}" has only ${product.stockQuantity} units left`, "warning");
-        notified.push(product.id);
-      }
-    });
-    localStorage.setItem("gfl_low_stock_notified", JSON.stringify(notified));
-  }, [products, addNotification, lowStockProducts]);
-
   const value = {
-    // Data
+    ready,
     products, categories, suppliers, customers, sales, purchases,
     stockAdjustments, users, notifications, settings,
-    // Computed
     lowStockProducts, totalProducts, totalSales, totalPurchases,
     totalRevenue, totalCost, totalInventoryValue, unreadNotifications,
-    // Products
     addProduct, updateProduct, deleteProduct, getProduct,
-    // Categories
     addCategory, updateCategory, deleteCategory,
-    // Suppliers
     addSupplier, updateSupplier, deleteSupplier, getSupplier,
-    // Customers
     addCustomer, updateCustomer, deleteCustomer, getCustomer,
-    // Sales
     addSale, getSale,
-    // Purchases
     addPurchase, getPurchase,
-    // Stock Adjustments
     addStockAdjustment,
-    // Users
     addUser, updateUser, deleteUser,
-    // Notifications
     addNotification, markNotificationRead, markAllNotificationsRead, deleteNotification,
-    // Settings
     updateSettings,
   };
 

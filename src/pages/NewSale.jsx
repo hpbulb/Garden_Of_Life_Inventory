@@ -66,7 +66,7 @@ export default function NewSale() {
   const tax = subtotal * (settings?.taxRate ?? 0.08);
   const total = subtotal + tax;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (cart.length === 0) {
       alert("Please add at least one product to the cart.");
@@ -74,7 +74,7 @@ export default function NewSale() {
     }
 
     const customer = customers.find((c) => c.id === Number(selectedCustomer));
-    addSale({
+    await addSale({
       items: cart,
       customerId: selectedCustomer ? Number(selectedCustomer) : null,
       customerName: customer ? customer.name : "Walk-in Customer",

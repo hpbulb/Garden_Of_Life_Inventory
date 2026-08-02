@@ -11,12 +11,12 @@ export default function StockAdjustment() {
     reason: "",
   });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const product = products.find((p) => p.id === Number(formData.productId));
     if (!product) return;
 
-    addStockAdjustment({
+    await addStockAdjustment({
       productId: product.id,
       productName: product.name,
       type: formData.type,

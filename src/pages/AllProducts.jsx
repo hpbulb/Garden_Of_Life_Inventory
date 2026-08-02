@@ -17,9 +17,9 @@ export default function AllProducts() {
     return matchesSearch && matchesCategory;
   });
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this product?")) {
-      deleteProduct(id);
+      await deleteProduct(id);
     }
   };
 

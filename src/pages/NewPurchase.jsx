@@ -63,7 +63,7 @@ export default function NewPurchase() {
   const tax = subtotal * (settings?.taxRate ?? 0.08);
   const total = subtotal + tax;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (cart.length === 0) {
       alert("Please add at least one product to the purchase.");
@@ -75,7 +75,7 @@ export default function NewPurchase() {
     }
 
     const supplier = suppliers.find((s) => s.id === Number(selectedSupplier));
-    addPurchase({
+    await addPurchase({
       items: cart,
       supplierId: Number(selectedSupplier),
       supplierName: supplier ? supplier.name : "",

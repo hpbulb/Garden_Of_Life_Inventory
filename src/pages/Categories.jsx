@@ -8,12 +8,12 @@ export default function Categories() {
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({ name: "", description: "" });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (editingId) {
-      updateCategory(editingId, formData);
+      await updateCategory(editingId, formData);
     } else {
-      addCategory(formData);
+      await addCategory(formData);
     }
     setFormData({ name: "", description: "" });
     setEditingId(null);
@@ -26,9 +26,9 @@ export default function Categories() {
     setShowForm(true);
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this category?")) {
-      deleteCategory(id);
+      await deleteCategory(id);
     }
   };
 

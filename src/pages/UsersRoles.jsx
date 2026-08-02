@@ -14,12 +14,12 @@ export default function UsersRoles() {
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({ name: "", email: "", role: "staff", password: "" });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (editingId) {
-      updateUser(editingId, formData);
+      await updateUser(editingId, formData);
     } else {
-      addUser(formData);
+      await addUser(formData);
     }
     setFormData({ name: "", email: "", role: "staff", password: "" });
     setEditingId(null);
@@ -32,9 +32,9 @@ export default function UsersRoles() {
     setShowForm(true);
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this user?")) {
-      deleteUser(id);
+      await deleteUser(id);
     }
   };
 

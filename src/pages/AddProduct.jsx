@@ -46,7 +46,7 @@ export default function AddProduct() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const productData = {
       name: formData.name,
@@ -62,9 +62,9 @@ export default function AddProduct() {
     };
 
     if (isEdit) {
-      updateProduct(Number(id), productData);
+      await updateProduct(Number(id), productData);
     } else {
-      addProduct(productData);
+      await addProduct(productData);
     }
     navigate("/products");
   };
